@@ -23,7 +23,7 @@ namespace CoreStarter.Api.Controllers
             return CreatedAtRoute("getById", new { id = response }, response);
         }
 
-        [HttpGet]
+        [HttpGet, ResponseCache(CacheProfileName = "default")]
         public async Task<IActionResult> Get()
         {
             var response = await _service.Get().ConfigureAwait(false);

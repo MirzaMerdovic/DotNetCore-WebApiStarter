@@ -2,11 +2,27 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/MirzaMerdovic/DotNetCore-Starter</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/MirzaMerdovic/DotNetCore-Starter.git</RepositoryUrl>
+    <PackageTags>web api</PackageTags>
+    <Description>.Net Core Web API starter template. Includes: swagger, configuration reading, application insight with request logging on exception, examples of routing and proper http response.</Description>
+    <Authors>Mirza Merdovic</Authors>
+    <Company />
+    <RootNamespace>$safeprojectname$</RootNamespace>
+    <AssemblyName>$safeprojectname$</AssemblyName>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DocumentationFile>bin\Debug\netcoreapp2.0\CoreStarter.Api.xml</DocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include=".template.config\template-icon.png" />
+    <Content Include=".template.config\template.json" />
+    <Content Include=".template.config\vs-2017.3.host.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="wwwroot\" />
