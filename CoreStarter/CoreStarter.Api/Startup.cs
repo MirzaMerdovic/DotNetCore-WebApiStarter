@@ -1,21 +1,18 @@
-﻿using CoreStarter.Api.Controllers;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
+﻿using System;
+using System.IO;
+using System.Text;
+using CoreStarter.Api.Controllers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.ResponseCaching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
+using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.Swagger;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 namespace CoreStarter.Api
 {
@@ -50,10 +47,10 @@ namespace CoreStarter.Api
         /// <returns></returns>
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
-            var connection = Configuration.GetSection("connectionStrings")["shopisticaApi"];
+            services.Configure<IConfiguration>(Configuration);
 
             // Register your types
-            services.AddTransient<IValueService, ValueService>();
+            services.AddTransient<IFooService, FooService>();
 
             // Refer to this article if you require more information on CORS
             // https://docs.microsoft.com/en-us/aspnet/core/security/cors
@@ -61,16 +58,20 @@ namespace CoreStarter.Api
             services.AddCors(options => { options.AddPolicy("AllowAllPolicy", build); });
 
             services.AddMvc(
-                // Refer to this article for more details on how to properly set the caching for your needs
-                // https://docs.microsoft.com/en-us/aspnet/core/performance/caching/response
-                options => 
+                options =>
+                    // Refer to this article for more details on how to properly set the caching for your needs
+                    // https://docs.microsoft.com/en-us/aspnet/core/performance/caching/response
                     options.CacheProfiles.Add(
-                        "default", 
+                        "default",
                         new CacheProfile
                         {
                             Duration = 600,
                             Location = ResponseCacheLocation.None
-                        }));
+                        }))
+                .AddJsonOptions(options =>
+                {
+                    options.SerializerSettings.Formatting = Formatting.Indented;
+                });
 
             services.AddResponseCaching();
 
@@ -118,8 +119,7 @@ namespace CoreStarter.Api
 
                             context.Request.Body.Position = 0;
 
-                            var telemetry = new TelemetryClient();
-                            telemetry.TrackTrace("Request Info", SeverityLevel.Information, new Dictionary<string, string> { { "Body", body } });
+                            // TODO: Log request.
                         });
                 });
             }
@@ -130,15 +130,10 @@ namespace CoreStarter.Api
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+                c.RoutePrefix = string.Empty;
             });
 
             app.UseMvc();
-        }
-
-        private static CorsPolicy BuildPolicy()
-        {
-            // These are not good values for production environment since you will allow everything.
-            return new CorsPolicyBuilder().WithOrigins("*").WithMethods("*").WithHeaders("*").AllowCredentials().Build();
         }
     }
 }
