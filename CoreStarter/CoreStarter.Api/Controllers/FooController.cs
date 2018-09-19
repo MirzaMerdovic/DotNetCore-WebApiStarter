@@ -1,8 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using CoreStarter.Api.Configuration;
+using CoreStarter.Api.Models;
+using CoreStarter.Api.Services;
+using CoreStarter.Api.SwaggerExamples;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace CoreStarter.Api.Controllers
 {
@@ -12,18 +18,25 @@ namespace CoreStarter.Api.Controllers
     [Route("api/[controller]")]
     public class FooController : ControllerBase
     {
-        private readonly IConfiguration _configuration;
+        private readonly ConnectionStrings _connectionStrings;
         private readonly IFooService _service;
+        private readonly ILogger _logger;
 
         /// <summary>
         /// Creates new instance of <see cref="FooController"/>.
         /// </summary>
-        /// <param name="configuration"></param>
-        /// <param name="service"></param>
-        public FooController(IConfiguration configuration, IFooService service)
+        /// <param name="connectionStrings">
+        /// Instance of <see cref="IOptionsSnapshot{ConnectionStrings}"/> object that contains connection string.
+        /// More information: https://docs.microsoft.com/en-us/dotnet/api/microsoft.extensions.options.ioptionssnapshot-1?view=aspnetcore-2.1
+        /// TODO: https://www.strathweb.com/2016/09/strongly-typed-configuration-in-asp-net-core-without-ioptionst/
+        /// </param>
+        /// <param name="service">Instance of <see cref="IFooService"/></param>
+        /// <param name="logger"></param>
+        public FooController(IOptionsSnapshot<ConnectionStrings> connectionStrings, IFooService service, ILogger<FooController> logger)
         {
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _connectionStrings = connectionStrings.Value ?? throw new ArgumentNullException(nameof(connectionStrings));
             _service = service ?? throw new ArgumentNullException(nameof(service));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -35,11 +48,9 @@ namespace CoreStarter.Api.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(int), 200)]
         [ProducesResponseType(500)]
+        [SwaggerRequestExample(typeof(Foo), typeof(FooRequestExample))]
         public async Task<IActionResult> Post([FromBody] Foo foo)
         {
-            // Example on how to get configuration values
-            var connection = _configuration.GetSection("connectionStrings")["shopisticaApi"];
-
             var response = await _service.Create(foo);
 
             return CreatedAtRoute("getById", new { id = response }, response);
@@ -52,11 +63,14 @@ namespace CoreStarter.Api.Controllers
         /// <response code="500">Internal server error.</response>
         [HttpGet, ResponseCache(CacheProfileName = "default")]
         [ProducesResponseType(typeof(IEnumerable<Foo>), 200)]
+        [SwaggerResponseExample(200, typeof(FooResponseExample))]
         public async Task<IActionResult> Get()
         {
             var response = await _service.Get().ConfigureAwait(false);
+            // Example on how to get configuration values
+            var connections = new List<string> { _connectionStrings.ApiDb, _connectionStrings.Api2Db };
 
-            return Ok(response);
+            return Ok(connections);
         }
 
         /// <summary>
@@ -66,9 +80,10 @@ namespace CoreStarter.Api.Controllers
         /// <response code="200">Foo successfully retrieved.</response>
         /// <response code="404">Specified Foo doesn't exist.</response>
         /// <response code="500">Internal server error.</response>
-        [HttpGet("{id}", Name = "getById")]
+        [HttpGet("{id:int:min(1)}", Name = "getById")]
         [ProducesResponseType(typeof(Foo), 200)]
         [ProducesResponseType(404)]
+        [SwaggerResponseExample(200, typeof(FooListResponseExample))]
         public async Task<IActionResult> Get(int id)
         {
             var response = await _service.Get(id).ConfigureAwait(false);
@@ -86,6 +101,7 @@ namespace CoreStarter.Api.Controllers
         /// <response code="200">Foo updated successfully.</response>
         /// <response code="500">Internal server error.</response>
         [HttpPatch]
+        [SwaggerRequestExample(typeof(Foo), typeof(FooRequestExample))]
         public async Task<IActionResult> Patch([FromBody] Foo foo)
         {
             await _service.Update(foo).ConfigureAwait(false);
@@ -99,108 +115,12 @@ namespace CoreStarter.Api.Controllers
         /// <param name="id">Unique identifier.</param>
         /// <response code="200">Foo deleted successfully.</response>
         /// <response code="500">Internal server error.</response>
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int:min(1)}")]
         public async Task<IActionResult> Delete(int id)
         {
             await _service.Delete(id).ConfigureAwait(false);
 
             return Ok();
         }
-    }
-
-    /// <summary>
-    /// Represents the set of methods for Foo manipulation.
-    /// </summary>
-    public interface IFooService
-    {
-        /// <summary>
-        /// Tries to create new Foo.
-        /// </summary>
-        /// <param name="foo">Instance of <see cref="Foo"/></param>
-        /// <returns>Unique identifier.</returns>
-        Task<int> Create(Foo foo);
-
-        /// <summary>
-        /// Tries to retrieve all Foo objects.
-        /// </summary>
-        /// <returns>A collection of Foo objects (collection might be empty, but never null).</returns>
-        Task<IEnumerable<Foo>> Get();
-
-        /// <summary>
-        /// Tries to retrieve specified Foo object if exists.
-        /// </summary>
-        /// <param name="id">Unique identifier.</param>
-        /// <returns>A <see cref="Foo"/> object, or null.</returns>
-        Task<Foo> Get(int id);
-
-        /// <summary>
-        /// Tries to perform update.
-        /// </summary>
-        /// <param name="foo">Instance of <see cref="Foo"/> that holds values that we want updated.</param>
-        /// <returns>An awaitable task.</returns>
-        Task Update(Foo foo);
-
-        /// <summary>
-        /// Tries to delete specified Foo.
-        /// </summary>
-        /// <param name="id">Unique identifier.</param>
-        /// <returns>An awaitable task.</returns>
-        Task Delete(int id);
-    }
-
-    internal class FooService : IFooService
-    {
-        public Task<int> Create(Foo foo)
-        {
-            return Task.FromResult(new Random().Next());
-        }
-
-        public Task<IEnumerable<Foo>> Get()
-        {
-            return Task.FromResult<IEnumerable<Foo>>(new List<Foo>
-            {
-                new Foo {Id = 1, Value = Guid.NewGuid().ToString().Remove(5)},
-                new Foo {Id = 3, Value = Guid.NewGuid().ToString().Remove(5)}
-            });
-        }
-
-        public Task<Foo> Get(int id)
-        {
-            if (id == 0)
-                return Task.FromResult<Foo>(null);
-
-            return Task.FromResult(new Foo { Id = id, Value = Guid.NewGuid().ToString().Remove(5) });
-        }
-
-        public Task Update(Foo foo)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task Delete(int id)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
-    /// <summary>
-    /// The Foo
-    /// </summary>
-    public class Foo
-    {
-        /// <summary>
-        /// Gets the creation time.
-        /// </summary>
-        public DateTime CreateAd => DateTime.UtcNow;
-
-        /// <summary>
-        /// Gets or sets unique identifier.
-        /// </summary>
-        public int Id { get; set; }
-
-        /// <summary>
-        /// Gets or sets the Foo value.
-        /// </summary>
-        public string Value { get; set; }
     }
 }

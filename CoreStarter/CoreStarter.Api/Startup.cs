@@ -1,7 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using CoreStarter.Api.Controllers;
+using CoreStarter.Api.Configuration;
+using CoreStarter.Api.Middleware;
+using CoreStarter.Api.Services;
+using CoreStarter.Api.SwaggerExamples;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
@@ -12,6 +15,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.PlatformAbstractions;
 using Newtonsoft.Json;
+using Swashbuckle.AspNetCore.Filters;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace CoreStarter.Api
@@ -21,10 +25,7 @@ namespace CoreStarter.Api
     /// </summary>
     public class Startup
     {
-        /// <summary>
-        /// Represents a set of key/value application configuration properties.
-        /// </summary>
-        public IConfiguration Configuration { get; }
+        private readonly IHostingEnvironment _env;
 
         /// <summary>
         /// Initializes new instance of <see cref="Startup"/>
@@ -32,12 +33,7 @@ namespace CoreStarter.Api
         /// <param name="env"></param>
         public Startup(IHostingEnvironment env)
         {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
-                .AddEnvironmentVariables();
-            Configuration = builder.Build();
+            _env = env;
         }
 
         /// <summary>
@@ -47,11 +43,20 @@ namespace CoreStarter.Api
         /// <returns></returns>
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
-            services.Configure<IConfiguration>(Configuration);
+            IConfigurationRoot configuration =
+                new ConfigurationBuilder()
+                    .SetBasePath(_env.ContentRootPath)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                    .AddJsonFile($"appsettings.{_env.EnvironmentName}.json", optional: true, reloadOnChange: true)
+                    .AddEnvironmentVariables()
+                    .Build();
+
+            services.Configure<ConnectionStrings>(configuration.GetSection("ConnectionStrings"));
+
+            services.AddLogging();
 
             // Register your types
             services.AddTransient<IFooService, FooService>();
-
             // Refer to this article if you require more information on CORS
             // https://docs.microsoft.com/en-us/aspnet/core/security/cors
             void build(CorsPolicyBuilder b) { b.WithOrigins("*").WithMethods("*").WithHeaders("*").AllowCredentials().Build(); };
@@ -75,6 +80,8 @@ namespace CoreStarter.Api
 
             services.AddResponseCaching();
 
+            services.AddSwaggerExamplesFromAssemblyOf<FooRequestExample>();
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new Info
@@ -88,6 +95,8 @@ namespace CoreStarter.Api
 
                 c.IncludeXmlComments(Path.Combine(PlatformServices.Default.Application.ApplicationBasePath, "CoreStarter.Api.xml"));
                 c.DescribeAllEnumsAsStrings();
+
+                c.ExampleFilters();
             });
 
             return services.BuildServiceProvider();
@@ -99,31 +108,27 @@ namespace CoreStarter.Api
         /// <param name="app"></param>
         public void Configure(IApplicationBuilder app)
         {
-            var env = app.ApplicationServices.GetService<IHostingEnvironment>();
-            var loggerFactory = app.ApplicationServices.GetService<ILoggerFactory>();
-
-            if (env.IsDevelopment())
+            app.UseExceptionHandler(options =>
             {
-                app.UseExceptionHandler(options =>
-                {
-                    options.Run(
-                        async context =>
+                options.Run(
+                    async context =>
+                    {
+                        var loggerFactory = app.ApplicationServices.GetService<ILogger>();
+
+                        context.Request.EnableRewind();
+                        context.Request.Body.Position = 0;
+
+                        using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
                         {
-                            context.Request.EnableRewind();
-                            string body;
+                            var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                            var exceptionHandler = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
 
-                            using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
-                            {
-                                body = await reader.ReadToEndAsync().ConfigureAwait(false);
-                            }
+                            loggerFactory.LogError(exceptionHandler.Error, "Error: {0}. Request: {1}", exceptionHandler.Error.Message, body);
+                        }
+                    });
+            });
 
-                            context.Request.Body.Position = 0;
-
-                            // TODO: Log request.
-                        });
-                });
-            }
-
+            app.UseMiddleware<RequestValidationMiddleware>();
             app.UseCors("AllowAllPolicy");
 
             app.UseSwagger();
