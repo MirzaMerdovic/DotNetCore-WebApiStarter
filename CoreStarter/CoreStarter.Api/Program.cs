@@ -26,7 +26,6 @@ namespace CoreStarter.Api
         {
             return
                 WebHost.CreateDefaultBuilder(args)
-                    .UseApplicationInsights()
                     .UseStartup<Startup>()
                     .Build();
         }
