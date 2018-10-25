@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
+using CoreStarter.Api.Binders;
 using CoreStarter.Api.Configuration;
 using CoreStarter.Api.Models;
 using CoreStarter.Api.Services;
 using CoreStarter.Api.SwaggerExamples;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -46,11 +49,38 @@ namespace CoreStarter.Api.Controllers
         /// <response code="200">Foo created.</response>
         /// <response code="500">Internal server error.</response>
         [HttpPost]
-        [ProducesResponseType(typeof(int), 200)]
+        [ProducesResponseType(typeof(int), 201)]
         [ProducesResponseType(500)]
         [SwaggerRequestExample(typeof(Foo), typeof(FooRequestExample))]
         public async Task<IActionResult> Post([FromBody] Foo foo)
         {
+            var response = await _service.Create(foo);
+
+            return CreatedAtRoute("getById", new { id = response }, response);
+        }
+
+        /// <summary>
+        /// Tries to create a new foo file.
+        /// </summary>
+        /// <param name="foo">Instance of <see cref="Foo"/>.</param>
+        /// <param name="file">A file content</param>
+        /// <returns></returns>
+        [HttpPost("content")]
+        [ProducesResponseType(typeof(int), 201)]
+        [ProducesResponseType(500)]
+        [AddSwaggerFileUploadButton]
+        // Since we are using custom model provider this post method doesn't support swagger request examples
+        // I guess this can be coded to be supported, but I feel it will go beyond this template's boundaries.
+        public async Task<IActionResult> PostFile([ModelBinder(BinderType = typeof(JsonModelBinder))] Foo foo, IFormFile file)
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                await file.OpenReadStream().CopyToAsync(memoryStream);
+
+                var path = Path.Combine(Path.GetTempPath(), file.FileName);
+                await System.IO.File.WriteAllBytesAsync(path, memoryStream.ToArray());
+            }
+
             var response = await _service.Create(foo);
 
             return CreatedAtRoute("getById", new { id = response }, response);

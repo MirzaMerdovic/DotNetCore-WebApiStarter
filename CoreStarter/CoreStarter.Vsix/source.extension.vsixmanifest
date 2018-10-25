@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
+  <Metadata>
+    <Identity Id="AspNetCore.WebApiStarter.1" Version="1.0" Language="en-US" Publisher="LazyByte AspNetCore Web Api Starter" />
+    <DisplayName>AspNetCore Web Api Starter Template</DisplayName>
+    <Description xml:space="preserve">
+          AspNet Core Web API starter template includes: swagger, configuration reading, exception handling, examples of routing with proper HTTP responses.
+    </Description>
+    <MoreInfo>https://github.com/MirzaMerdovic/DotNetCore-Starter.git</MoreInfo>
+    <GettingStartedGuide>https://github.com/MirzaMerdovic/DotNetCore-WebApiStarter/wiki</GettingStartedGuide>
+    <ReleaseNotes>https://github.com/MirzaMerdovic/DotNetCore-WebApiStarter/blob/master/release-notes.md</ReleaseNotes>
+    <Icon>logo-lazybyte.png</Icon>
+    <Tags>web api, rest, webapi, swagger, cors</Tags>
+  </Metadata>
+  <Installation>
+    <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[15.0, 16.0)" />
+  </Installation>
+  <Dependencies>
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
+  </Dependencies>
+  <Assets>
+    <Asset Type="Microsoft.VisualStudio.ProjectTemplate" d:Source="File" Path="ProjectTemplates" d:TargetPath="ProjectTemplates\CoreStarter.Api.zip" />
+  </Assets>
+  <Prerequisites>
+    <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.0,16.0)" DisplayName="Visual Studio core editor" />
+  </Prerequisites>
+</PackageManifest>

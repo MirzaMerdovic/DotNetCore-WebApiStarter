@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using CoreStarter.Api.Configuration;
 using CoreStarter.Api.Middleware;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -62,17 +64,23 @@ namespace CoreStarter.Api
             void build(CorsPolicyBuilder b) { b.WithOrigins("*").WithMethods("*").WithHeaders("*").AllowCredentials().Build(); };
             services.AddCors(options => { options.AddPolicy("AllowAllPolicy", build); });
 
-            services.AddMvc(
-                options =>
-                    // Refer to this article for more details on how to properly set the caching for your needs
-                    // https://docs.microsoft.com/en-us/aspnet/core/performance/caching/response
-                    options.CacheProfiles.Add(
-                        "default",
-                        new CacheProfile
-                        {
-                            Duration = 600,
-                            Location = ResponseCacheLocation.None
-                        }))
+            services
+                .AddMvc(
+                    options =>
+                    {
+                        // Refer to this article for more details on how to properly set the caching for your needs
+                        // https://docs.microsoft.com/en-us/aspnet/core/performance/caching/response
+                        options.CacheProfiles.Add(
+                            "default",
+                            new CacheProfile
+                            {
+                                Duration = 600,
+                                Location = ResponseCacheLocation.None
+                            });
+
+                        //var jsonInputFormatter = options.InputFormatters.OfType<JsonInputFormatter>().First();
+                        //jsonInputFormatter.SupportedMediaTypes.Add("multipart/form-data");
+                    })
                 .AddJsonOptions(options =>
                 {
                     options.SerializerSettings.Formatting = Formatting.Indented;
@@ -93,10 +101,11 @@ namespace CoreStarter.Api
                     Contact = new Contact { Name = "Name Surname", Email = "email@gmail.com", Url = "" }
                 });
 
-                c.IncludeXmlComments(Path.Combine(PlatformServices.Default.Application.ApplicationBasePath, "CoreStarter.Api.xml"));
+                c.IncludeXmlComments(Path.Combine(PlatformServices.Default.Application.ApplicationBasePath, $"{PlatformServices.Default.Application.ApplicationName}.xml"));
                 c.DescribeAllEnumsAsStrings();
 
                 c.ExampleFilters();
+                c.OperationFilter<AddFileParamTypesOperationFilter>();
             });
 
             return services.BuildServiceProvider();
