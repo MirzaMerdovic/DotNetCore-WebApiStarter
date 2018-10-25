@@ -2,28 +2,22 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <PackageProjectUrl>https://github.com/MirzaMerdovic/DotNetCore-Starter</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/MirzaMerdovic/DotNetCore-Starter.git</RepositoryUrl>
-    <PackageTags>web api</PackageTags>
-    <Description>.Net Core Web API starter template. Includes: swagger, configuration reading, application insight with request logging on exception, examples of routing and proper http response.</Description>
-    <Authors>Mirza Merdovic</Authors>
-    <Company />
-    <RootNamespace>$safeprojectname$</RootNamespace>
-    <AssemblyName>$safeprojectname$</AssemblyName>
     <Version>1.0.0</Version>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>bin\Debug\netcoreapp2.0\CoreStarter.Api.xml</DocumentationFile>
+  <PropertyGroup>
+    <DocumentationFile>bin\Debug\netcoreapp2.0\$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\" />
+    <Compile Remove="wwwroot\**" />
+    <Content Remove="wwwroot\**" />
+    <EmbeddedResource Remove="wwwroot\**" />
+    <None Remove="wwwroot\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.4" />
+    <PackageReference Include="Microsoft.AspNetCore.All" Version="2.1.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="3.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="4.3.0" />
   </ItemGroup>
