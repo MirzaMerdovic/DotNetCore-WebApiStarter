@@ -1,24 +1,21 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Text;
-using CoreStarter.Api.Configuration;
+﻿using CoreStarter.Api.Configuration;
 using CoreStarter.Api.Middleware;
+using CoreStarter.Api.Observability;
 using CoreStarter.Api.Services;
-using CoreStarter.Api.SwaggerExamples;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http.Internal;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.PlatformAbstractions;
-using Newtonsoft.Json;
-using Swashbuckle.AspNetCore.Filters;
-using Swashbuckle.AspNetCore.Swagger;
+using Microsoft.OpenApi.Models;
+using Newtonsoft.Json.Serialization;
+using System;
+using System.IO;
+using System.Text;
 
 namespace CoreStarter.Api
 {
@@ -27,23 +24,23 @@ namespace CoreStarter.Api
     /// </summary>
     public class Startup
     {
-        private readonly IHostingEnvironment _env;
+        private readonly IWebHostEnvironment _env;
 
         /// <summary>
         /// Initializes new instance of <see cref="Startup"/>
         /// </summary>
         /// <param name="env"></param>
-        public Startup(IHostingEnvironment env)
+        public Startup(IWebHostEnvironment env)
         {
             _env = env;
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="services"></param>
         /// <returns></returns>
-        public IServiceProvider ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services)
         {
             IConfigurationRoot configuration =
                 new ConfigurationBuilder()
@@ -56,12 +53,14 @@ namespace CoreStarter.Api
             services.Configure<ConnectionStrings>(configuration.GetSection("ConnectionStrings"));
 
             services.AddLogging();
+            services.AddHealthChecks().AddCheck<BasicHealthCheck>("basic", tags: new[] { "ready", "live" });
 
             // Register your types
             services.AddTransient<IFooService, FooService>();
+
             // Refer to this article if you require more information on CORS
             // https://docs.microsoft.com/en-us/aspnet/core/security/cors
-            void build(CorsPolicyBuilder b) { b.WithOrigins("*").WithMethods("*").WithHeaders("*").AllowCredentials().Build(); };
+            void build(CorsPolicyBuilder b) { b.WithOrigins("*").WithMethods("*").WithHeaders("*").Build(); };
             services.AddCors(options => { options.AddPolicy("AllowAllPolicy", build); });
 
             services
@@ -81,38 +80,27 @@ namespace CoreStarter.Api
                         //var jsonInputFormatter = options.InputFormatters.OfType<JsonInputFormatter>().First();
                         //jsonInputFormatter.SupportedMediaTypes.Add("multipart/form-data");
                     })
-                .AddJsonOptions(options =>
-                {
-                    options.SerializerSettings.Formatting = Formatting.Indented;
-                });
+                .AddNewtonsoftJson(options =>
+                    {
+                        options.SerializerSettings.Formatting = Newtonsoft.Json.Formatting.Indented;
+                        options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+                        options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                    });
 
-            services.AddResponseCaching();
-
-            services.AddSwaggerExamplesFromAssemblyOf<FooRequestExample>();
+            services.AddResponseCaching(options =>
+            {
+                options.MaximumBodySize = 2048;
+                options.UseCaseSensitivePaths = false;
+            });
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info
-                {
-                    Version = "v1",
-                    Title = "My API",
-                    Description = "My API",
-                    TermsOfService = "None",
-                    Contact = new Contact { Name = "Name Surname", Email = "email@gmail.com", Url = "" }
-                });
-
-                c.IncludeXmlComments(Path.Combine(PlatformServices.Default.Application.ApplicationBasePath, $"{PlatformServices.Default.Application.ApplicationName}.xml"));
-                c.DescribeAllEnumsAsStrings();
-
-                c.ExampleFilters();
-                c.OperationFilter<AddFileParamTypesOperationFilter>();
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
             });
-
-            return services.BuildServiceProvider();
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="app"></param>
         public void Configure(IApplicationBuilder app)
@@ -124,7 +112,6 @@ namespace CoreStarter.Api
                     {
                         var loggerFactory = app.ApplicationServices.GetService<ILogger>();
 
-                        context.Request.EnableRewind();
                         context.Request.Body.Position = 0;
 
                         using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
@@ -132,22 +119,56 @@ namespace CoreStarter.Api
                             var body = await reader.ReadToEndAsync().ConfigureAwait(false);
                             var exceptionHandler = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
 
-                            loggerFactory.LogError(exceptionHandler.Error, "Error: {0}. Request: {1}", exceptionHandler.Error.Message, body);
+                            loggerFactory.LogError(exceptionHandler.Error, $"Failed request: {body}",null);
                         }
                     });
             });
 
-            app.UseMiddleware<RequestValidationMiddleware>();
             app.UseCors("AllowAllPolicy");
+
+            app.UseMiddleware<RequestValidationMiddleware>();
+            app.UseResponseCaching();
+
+            app.Use(async (context, next) =>
+            {
+                context.Response.GetTypedHeaders().CacheControl =
+                    new Microsoft.Net.Http.Headers.CacheControlHeaderValue()
+                    {
+                        Public = true,
+                        MaxAge = TimeSpan.FromSeconds(10)
+                    };
+
+                context.Response.Headers[Microsoft.Net.Http.Headers.HeaderNames.Vary] = new [] { "Accept-Encoding" };
+
+                await next();
+            });
+
+            app.UseRouting();
+
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapControllers();
+
+                endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions()
+                {
+                    AllowCachingResponses = false,
+                    Predicate = (check) => check.Tags.Contains("ready"),
+                    ResponseWriter = HealthReportWriter.WriteResponse
+                });
+
+                endpoints.MapHealthChecks("/health/live", new HealthCheckOptions()
+                {
+                    AllowCachingResponses = false,
+                    Predicate = (check) => check.Tags.Contains("ready"),
+                    ResponseWriter = HealthReportWriter.WriteResponse
+                });
+            });
 
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-                c.RoutePrefix = string.Empty;
             });
-
-            app.UseMvc();
         }
     }
 }

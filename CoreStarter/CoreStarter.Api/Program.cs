@@ -1,33 +1,29 @@
-﻿using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+using System.Threading.Tasks;
 
 namespace CoreStarter.Api
 {
     /// <summary>
-    /// 
+    /// Where all begins.
     /// </summary>
-    public class Program
+    public static class Program
     {
         /// <summary>
-        /// 
+        /// The main method.
         /// </summary>
-        /// <param name="args"></param>
-        public static void Main(string[] args)
+        /// <param name="args">Arguments</param>
+        /// <returns>A task.</returns>
+        public static Task Main(string[] args)
         {
-            BuildWebHost(args).Run();
+            return CreateHostBuilder(args).Build().RunAsync();
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        public static IWebHost BuildWebHost(string[] args)
-        {
-            return
-                WebHost.CreateDefaultBuilder(args)
-                    .UseStartup<Startup>()
-                    .Build();
-        }
+        private static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }

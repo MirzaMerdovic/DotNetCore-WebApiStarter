@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Threading.Tasks;
-using CoreStarter.Api.Binders;
+﻿using CoreStarter.Api.Binders;
 using CoreStarter.Api.Configuration;
 using CoreStarter.Api.Models;
 using CoreStarter.Api.Services;
-using CoreStarter.Api.SwaggerExamples;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Swashbuckle.AspNetCore.Filters;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace CoreStarter.Api.Controllers
 {
@@ -51,7 +49,7 @@ namespace CoreStarter.Api.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(int), 201)]
         [ProducesResponseType(500)]
-        [SwaggerRequestExample(typeof(Foo), typeof(FooRequestExample))]
+        //[SwaggerRequestExample(typeof(Foo), typeof(FooRequestExample))]
         public async Task<IActionResult> Post([FromBody] Foo foo)
         {
             var response = await _service.Create(foo);
@@ -68,7 +66,7 @@ namespace CoreStarter.Api.Controllers
         [HttpPost("content")]
         [ProducesResponseType(typeof(int), 201)]
         [ProducesResponseType(500)]
-        [AddSwaggerFileUploadButton]
+        //[AddSwaggerFileUploadButton]
         // Since we are using custom model provider this post method doesn't support swagger request examples
         // I guess this can be coded to be supported, but I feel it will go beyond this template's boundaries.
         public async Task<IActionResult> PostFile([ModelBinder(BinderType = typeof(JsonModelBinder))] Foo foo, IFormFile file)
@@ -93,7 +91,7 @@ namespace CoreStarter.Api.Controllers
         /// <response code="500">Internal server error.</response>
         [HttpGet, ResponseCache(CacheProfileName = "default")]
         [ProducesResponseType(typeof(IEnumerable<Foo>), 200)]
-        [SwaggerResponseExample(200, typeof(FooResponseExample))]
+        //[SwaggerResponseExample(200, typeof(FooResponseExample))]
         public async Task<IActionResult> Get()
         {
             var response = await _service.Get().ConfigureAwait(false);
@@ -113,7 +111,7 @@ namespace CoreStarter.Api.Controllers
         [HttpGet("{id:int:min(1)}", Name = "getById")]
         [ProducesResponseType(typeof(Foo), 200)]
         [ProducesResponseType(404)]
-        [SwaggerResponseExample(200, typeof(FooListResponseExample))]
+        //[SwaggerResponseExample(200, typeof(FooListResponseExample))]
         public async Task<IActionResult> Get(int id)
         {
             var response = await _service.Get(id).ConfigureAwait(false);
@@ -131,7 +129,7 @@ namespace CoreStarter.Api.Controllers
         /// <response code="200">Foo updated successfully.</response>
         /// <response code="500">Internal server error.</response>
         [HttpPatch]
-        [SwaggerRequestExample(typeof(Foo), typeof(FooRequestExample))]
+        //[SwaggerRequestExample(typeof(Foo), typeof(FooRequestExample))]
         public async Task<IActionResult> Patch([FromBody] Foo foo)
         {
             await _service.Update(foo).ConfigureAwait(false);
