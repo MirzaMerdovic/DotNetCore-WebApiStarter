@@ -1,6 +1,6 @@
 ﻿namespace CoreStarter.Api.Configuration
 {
-    public class ConnectionStrings 
+    public class ConnectionStrings
     {
         public string ApiDb { get; set; }
 

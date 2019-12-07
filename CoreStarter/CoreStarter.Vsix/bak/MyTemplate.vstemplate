@@ -1,0 +1,54 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="ProjectGroup">
+  <TemplateData>
+    <Name>CoreStarter.Api</Name>
+    <Description>Starter template for developing Web APIs with ASPNet Core 3+</Description>
+    <ProjectType>CSharp</ProjectType>
+    <ProjectSubType>Web</ProjectSubType>
+    <LanguageTag>C#</LanguageTag>
+    <PlatformTag>Windows</PlatformTag>
+    <PlatformTag>Linux</PlatformTag>
+    <PlatformTag>macOS</PlatformTag>
+    <ProjectTypeTag>Web</ProjectTypeTag>
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+    <SortOrder>10</SortOrder>
+    <CreateNewFolder>true</CreateNewFolder>
+    <DefaultName>WebApi</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <LocationField>Enabled</LocationField>
+    <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
+    <CreateInPlace>true</CreateInPlace>
+	  <Icon>__TemplateIcon.ico</Icon>
+  </TemplateData>
+  <TemplateContent>
+    <Project TargetFileName="CoreStarter.Api.csproj" File="CoreStarter.Api.csproj" ReplaceParameters="true">
+      <Folder Name="Properties" TargetFolderName="Properties">
+        <ProjectItem ReplaceParameters="true" TargetFileName="launchSettings.json">launchSettings.json</ProjectItem>
+      </Folder>
+      <Folder Name="Configuration" TargetFolderName="Configuration">
+        <ProjectItem ReplaceParameters="true" TargetFileName="ConnectionStrings.cs">ConnectionStrings.cs</ProjectItem>
+      </Folder>
+      <Folder Name="Controllers" TargetFolderName="Controllers">
+        <ProjectItem ReplaceParameters="true" TargetFileName="FooController.cs">FooController.cs</ProjectItem>
+      </Folder>
+      <Folder Name="Midlleware" TargetFolderName="Midlleware">
+        <ProjectItem ReplaceParameters="true" TargetFileName="RequestValidationMiddleware.cs">RequestValidationMiddleware.cs</ProjectItem>
+      </Folder>
+      <Folder Name="Models" TargetFolderName="Models">
+        <ProjectItem ReplaceParameters="true" TargetFileName="Foo.cs">Foo.cs</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="FooFile.cs">FooFile.cs</ProjectItem>
+      </Folder>
+      <Folder Name="Observability" TargetFolderName="Observability">
+        <ProjectItem ReplaceParameters="true" TargetFileName="BasicHealthCheck.cs">BasicHealthCheck.cs</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="HealthReportWriter.cs">HealthReportWriter.cs</ProjectItem>
+      </Folder>
+      <Folder Name="Services" TargetFolderName="Services">
+        <ProjectItem ReplaceParameters="true" TargetFileName="FooService.cs">FooService.cs</ProjectItem>
+        <ProjectItem ReplaceParameters="true" TargetFileName="IFooService.cs">IFooService.cs</ProjectItem>
+      </Folder>
+      <ProjectItem ReplaceParameters="true" TargetFileName="appsettings.json">appsettings.json</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="appsettings.development.json">appsettings.development.json</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="Program.cs">Program.cs</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="Startup.cs">Startup.cs</ProjectItem>
+    </Project>
+  </TemplateContent>
+</VSTemplate>

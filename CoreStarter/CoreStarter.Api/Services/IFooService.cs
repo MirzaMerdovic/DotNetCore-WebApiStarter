@@ -42,5 +42,10 @@ namespace CoreStarter.Api.Services
         /// <param name="id">Unique identifier.</param>
         /// <returns>An awaitable task.</returns>
         Task Delete(int id);
+
+        /// <summary>
+        /// Throws an exception to demonstrate exception handling.
+        /// </summary>
+        void Throw();
     }
 }

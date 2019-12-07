@@ -1,13 +1,21 @@
-﻿using System;
+﻿using CoreStarter.Api.Configuration;
+using CoreStarter.Api.Models;
+using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CoreStarter.Api.Controllers;
-using CoreStarter.Api.Models;
 
 namespace CoreStarter.Api.Services
 {
-    internal class FooService : IFooService
+    public sealed class FooService : IFooService
     {
+        private readonly ConnectionStrings _connectionStrings;
+
+        public FooService(IOptionsMonitor<ConnectionStrings> connectionStrings)
+        {
+            _connectionStrings = connectionStrings.CurrentValue;
+        }
+
         public Task<int> Create(Foo foo)
         {
             return Task.FromResult(new Random().Next());
@@ -38,6 +46,11 @@ namespace CoreStarter.Api.Services
         public Task Delete(int id)
         {
             return Task.CompletedTask;
+        }
+
+        public void Throw()
+        {
+            throw new ApplicationException("Here is an error for you");
         }
     }
 }

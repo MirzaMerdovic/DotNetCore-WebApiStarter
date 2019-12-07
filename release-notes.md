@@ -6,3 +6,5 @@ Release Notes
 # 2.0.0 - December 4th, 2019
 - Upgraded to ASPNet Core 3.1
 - Added liveness and readiness health checks
+- Fixed file upload so it supports POCO + File combination in models
+- Removed Swagger examples

@@ -4,6 +4,7 @@ using CoreStarter.Api.Observability;
 using CoreStarter.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -14,8 +15,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
 using System;
+using System.Buffers;
 using System.IO;
 using System.Text;
+using System.Text.Json;
 
 namespace CoreStarter.Api
 {
@@ -52,7 +55,8 @@ namespace CoreStarter.Api
 
             services.Configure<ConnectionStrings>(configuration.GetSection("ConnectionStrings"));
 
-            services.AddLogging();
+            services.AddLogging(x => x.AddConsole());
+
             services.AddHealthChecks().AddCheck<BasicHealthCheck>("basic", tags: new[] { "ready", "live" });
 
             // Register your types
@@ -76,9 +80,6 @@ namespace CoreStarter.Api
                                 Duration = 600,
                                 Location = ResponseCacheLocation.None
                             });
-
-                        //var jsonInputFormatter = options.InputFormatters.OfType<JsonInputFormatter>().First();
-                        //jsonInputFormatter.SupportedMediaTypes.Add("multipart/form-data");
                     })
                 .AddNewtonsoftJson(options =>
                     {
@@ -105,22 +106,15 @@ namespace CoreStarter.Api
         /// <param name="app"></param>
         public void Configure(IApplicationBuilder app)
         {
-            app.UseExceptionHandler(options =>
+            app.UseExceptionHandler(builder =>
             {
-                options.Run(
+                builder.Run(
                     async context =>
                     {
-                        var loggerFactory = app.ApplicationServices.GetService<ILogger>();
 
-                        context.Request.Body.Position = 0;
-
-                        using (var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true))
-                        {
-                            var body = await reader.ReadToEndAsync().ConfigureAwait(false);
-                            var exceptionHandler = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
-
-                            loggerFactory.LogError(exceptionHandler.Error, $"Failed request: {body}",null);
-                        }
+                        var loggerFactory = context.RequestServices.GetService<ILoggerFactory>();
+                        var exceptionHandler = context.Features.Get<IExceptionHandlerFeature>();
+                        loggerFactory.CreateLogger("ExceptionHandler").LogError(exceptionHandler.Error, exceptionHandler.Error.Message, null);
                     });
             });
 
@@ -138,7 +132,7 @@ namespace CoreStarter.Api
                         MaxAge = TimeSpan.FromSeconds(10)
                     };
 
-                context.Response.Headers[Microsoft.Net.Http.Headers.HeaderNames.Vary] = new [] { "Accept-Encoding" };
+                context.Response.Headers[Microsoft.Net.Http.Headers.HeaderNames.Vary] = new[] { "Accept-Encoding" };
 
                 await next();
             });
