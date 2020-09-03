@@ -22,8 +22,8 @@ In case you are still reading this is what template brings on the table:
 * FooController - a simple API controller:
     * Routing
     * HTTP response messages using IActionResult
-    * File upload example that support complex models which means POCO class with properties of type IFormFile
-* Customer middleware example
+    * File upload example that support complex models so that you can have metadata around IFormFile property that carries the file content
+* Custom middleware example
 
 # Feedback
 If you have any issues or suggestion that you believe might make the template better please don't hestitate to let me know and if it's not a big bother please use one of the templates: [bug](https://github.com/MirzaMerdovic/DotNetCore-WebApiStarter/issues/new?template=bug_report.md)/[new feature](https://github.com/MirzaMerdovic/DotNetCore-WebApiStarter/issues/new?template=feature_request.md)
